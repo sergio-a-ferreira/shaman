@@ -95,5 +95,5 @@ or
 
 ## License ##
 
-This project is licensed under the Unlicense - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT Lincense - see the [LICENSE](LICENSE) file for details
 
