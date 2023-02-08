@@ -1,0 +1,8 @@
+lshw
+meocloud
+notify-send
+redhat-lsb-core:RedHat
+rclone
+exa
+vivid
+dig

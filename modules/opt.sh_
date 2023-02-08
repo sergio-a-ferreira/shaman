@@ -1,0 +1,137 @@
+f_usage() {
+
+        # Objectivo:    funcao auxiliar para criacao / disponibilizacao de menus de ajuda
+        # Argumentos:   N/A
+        # Output:       help / manual page
+        # Notas:        N/A
+
+        USAGE=$'[-?\n@(#)$Id: consNGIN.sh'
+        USAGE+=$' [2017-10-23]] $\n]'
+        USAGE+="[-author?S. Ferreira <sergio-a-ferreira@telecom.pt>]"
+        USAGE+="[-copyright?Copyright (c) 2017 Free Software Foundation, Inc.]"
+        USAGE+="[-license?GPLv3+: GNU GPL version 3 or later (http://gnu.org/licenses/gpl.html).]"
+        USAGE+="[+NAME?consNGIN.sh --- ferramenta de consultas a NGIN]"
+        USAGE+="[+DESCRIPTION?consulta de tarifarios (voz e dados), servicos, "
+        USAGE+="campanhas e wallets, por msisdn, na plataforma NGIN.]"
+
+        USAGE+="[m:msisdn]#[msisdn?msisdn a pesquisar.]"
+        USAGE+="[f:ficheiro]:[ficheiro?ficheiro com lista de msisdn's a pesquisar.]"
+        USAGE+="[q:quiet?quiet mode; sourcing de ficheiros -- inibe a impressao para stdout.]"
+        USAGE+="[v:voz?consulta tarifario de voz.]"
+        USAGE+="[C:CASAT?consulta celulas CasaT.]"
+        USAGE+="[d:dados?consulta tarifario de dados.]"
+        USAGE+="[a:all?consulta tarifarios de voz e dados - identico a -vd.]"
+        USAGE+="[p:plafond]:?[plafond1::plafond2::plafondN?wallets / plafonds a consultar; separador ':'.]"
+        USAGE+="[c:campanha]:?[promotion1::promotion2::promotionN?campanhas / promotions a consultar; separador ':'.]"
+        USAGE+="[s:servico]:[service1::service2::serviceN?servicos a consultar; separador ':'.]"
+        USAGE+="[S:subservico]:[service1::service2::serviceN?servicos a consultar; separador ':'.]"
+        USAGE+=$'[o:operador]:[operador?operador a consultar: \aTMN|CBV|ONI\a]'
+        USAGE+=$'[t:tipo]:[tipo?tipo cartao a consultar: \aPCC|PPS\a]'
+
+        USAGE+=$'\n\n\amsisdn1 msisdn2 msisdnN ... \a\n\n'
+        USAGE+=$'[+EXAMPLES\n\n]'
+        USAGE+=$'[+SEE ALSO?\aksh\a(1), \agetopts\a(1), \awget\a(1), \axmllint\a(1)]'
+
+}
+
+
+
+if [ ${#} -gt 0 ]; then
+
+        f_usage
+
+        while getopts "${USAGE}" optChar ; do
+                case ${optChar} in
+                        m)      MSISDNS+=" ${OPTARG}"
+                        ;;
+                        f)      FILE=${OPTARG}
+                                [ -e ${FILE} ] && MSISDNS+=$( < ${FILE} )
+                        ;;
+                        q)      quiet=0
+                        ;;
+                        v)      voz=0
+                        ;;
+                        d)      dados=0
+                        ;;
+                        a)      voz=0
+                                dados=0
+                        ;;
+                        p)      plafond=${OPTARG}
+                                [ -z "${plafond}" ] && plafond=0
+                        ;;
+                        c)      campanha=0
+                                [ -n "${OPTARG}" -a "${OPTARG}" != "0" ] && promotions+=" ${OPTARG}" || promotions="ALL"
+                        ;;
+                        s)      service=0
+                                servicos+=" ${OPTARG}"
+                        ;;
+                        S)      subservice=0
+                                subservicos+=" ${OPTARG}"
+                        ;;
+                        o)      OPERADOR=${OPTARG}
+                                if [ "${OPERADOR}" != "TMN" -a "${OPERADOR}" != "CBV" -a "${OPERADOR}" != "ONI" ]; then
+                                        printf "${.sh.file}: erro - operador ${OPERADOR} invalido\n\t${.sh.file} --help para opcoes validas\n\n" >&2
+                                        exit 3
+                                fi
+                        ;;
+                        t)      TIPO=${OPTARG}
+                                if [ "${TIPO}" != "PPS" -a "${TIPO}" != "PCC" ]; then
+                                        printf "${.sh.file}: erro - tipo de cartao ${TIPO} invalido\n\t${.sh.file} --help para opcoes validas\n\n" >&2
+                                        exit 3
+                                fi
+                        ;;
+                        C)      BTS=1
+                        ;;
+                esac
+        done
+
+        shift $(( OPTIND - 1 ))
+        MSISDNS+=" ${@}"
+
+else
+        printf "${.sh.file}: erro - faltam argumentos\n\t${.sh.file} --help para opcoes validas\n\n" >&2
+        exit 2
+fi
+
+
+#####
+# http://abhipandey.com/2016/03/getopt-vs-getopts/
+What if I really wanted long options with getopts?
+getopts function can be used to parse long options by putting a dash character followed by a colon into the OPTSPEC. Sharing the solution from this link.
+
+#!/usr/bin/env bash 
+OPTSPEC=":hv-:"
+while getopts "$OPTSPEC" optchar; do
+    case "${optchar}" in
+        -)
+            case "${OPTARG}" in
+                loglevel)
+                    val="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+                    echo "Parsing option: '--${OPTARG}', value: '${val}'" >&2;
+                    ;;
+                loglevel=*)
+                    val=${OPTARG#*=}
+                    opt=${OPTARG%=$val}
+                    echo "Parsing option: '--${opt}', value: '${val}'" >&2
+                    ;;
+                *)
+                    if [ "$OPTERR" = 1 ] && [ "${OPTSPEC:0:1}" != ":" ]; then
+                        echo "Unknown option --${OPTARG}" >&2
+                    fi
+                    ;;
+            esac;;
+        h)
+            echo "usage: $0 [-v] [--loglevel[=]<value>]" >&2
+            exit 2
+            ;;
+        v)
+            echo "Parsing option: '-${optchar}'" >&2
+            ;;
+        *)
+            if [ "$OPTERR" != 1 ] || [ "${OPTSPEC:0:1}" = ":" ]; then
+                echo "Non-option argument: '-${OPTARG}'" >&2
+            fi
+            ;;
+    esac
+done
+
